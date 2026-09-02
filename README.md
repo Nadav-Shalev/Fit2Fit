@@ -73,13 +73,27 @@ in `scripts/generate-icons.mjs`).
    git push -u origin main
    ```
 
-### Enabling GitHub Pages
+### Enabling GitHub Pages — required once, before the first deploy
+
+> **Do this before (or right after) your first push.** Until Pages is enabled, the workflow
+> fails at the `configure-pages` step. This cannot be automated: the action's `enablement`
+> option explicitly requires a token other than the built-in `GITHUB_TOKEN`, so a one-time
+> manual switch is the intended path.
 
 1. In the repository, open **Settings → Pages**.
 2. Under **Source**, choose **GitHub Actions**.
-3. That's it. Every push to `main` runs lint, typecheck, tests and build, then deploys.
+3. If a run already failed, open **Actions**, pick the run and press **Re-run jobs**.
 
+From then on, every push to `main` runs lint, typecheck, tests and build, then deploys.
 Your app will be live at `https://<your-username>.github.io/<repo-name>/`.
+
+### Troubleshooting the deployment
+
+| Symptom | Cause and fix |
+| --- | --- |
+| `build` fails with `HttpError: Not Found` and `Get Pages site failed` | Pages is not enabled yet. Follow the three steps above, then re-run the workflow. |
+| `deploy` is skipped with a grey icon | Expected whenever `build` fails — `deploy` depends on it. Fix `build` first. |
+| Site loads but assets 404 | The base path does not match the repository name. It is derived from `GITHUB_REPOSITORY`; override it with `VITE_BASE` only if you use a custom domain. |
 
 ### About the base path
 
@@ -138,7 +152,7 @@ An invalid, truncated or foreign JSON file is rejected with a specific reason an
 There is no backend — one was not needed. Instead the code is layered strictly inside `src/`, with
 `services`, `utils` and `repositories` containing no React at all:
 
-```
+```text
 src/
 ├─ app/            Shell: router, layout, navigation, error boundary
 ├─ components/     Reusable presentational components (ui/, charts/)
