@@ -1,0 +1,156 @@
+@import 'tailwindcss';
+
+/* Dark mode is driven by a class on <html> rather than only the OS preference,
+   so the in-app theme setting can override the system. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ---------- Design tokens (runtime values, swapped by the theme class) ---------- */
+:root {
+  --app-bg: #0a0e17;
+  --app-surface: #141a26;
+  --app-elevated: #1d2534;
+  --app-line: #2a3446;
+  --app-fg: #e9eefb;
+  --app-muted: #93a1bb;
+  --app-primary: #10b981;
+  --app-primary-strong: #059669;
+  --app-primary-fg: #05130d;
+  --app-primary-soft: #10b98126;
+  --app-run: #f97316;
+  --app-run-soft: #f9731626;
+  --app-success: #22c55e;
+  --app-warning: #f59e0b;
+  --app-danger: #ef4444;
+  --app-danger-soft: #ef444426;
+  --app-shadow: 0 10px 30px -12px rgb(0 0 0 / 0.7);
+  color-scheme: dark;
+}
+
+:root.light {
+  --app-bg: #f4f6fb;
+  --app-surface: #ffffff;
+  --app-elevated: #ffffff;
+  --app-line: #dfe5ef;
+  --app-fg: #10182a;
+  --app-muted: #5c6a83;
+  --app-primary: #059669;
+  --app-primary-strong: #047857;
+  --app-primary-fg: #ffffff;
+  --app-primary-soft: #0596691a;
+  --app-run: #ea580c;
+  --app-run-soft: #ea580c1a;
+  --app-success: #16a34a;
+  --app-warning: #d97706;
+  --app-danger: #dc2626;
+  --app-danger-soft: #dc26261a;
+  --app-shadow: 0 10px 24px -14px rgb(15 23 42 / 0.25);
+  color-scheme: light;
+}
+
+@theme inline {
+  --color-bg: var(--app-bg);
+  --color-surface: var(--app-surface);
+  --color-elevated: var(--app-elevated);
+  --color-line: var(--app-line);
+  --color-fg: var(--app-fg);
+  --color-muted: var(--app-muted);
+  --color-primary: var(--app-primary);
+  --color-primary-strong: var(--app-primary-strong);
+  --color-primary-fg: var(--app-primary-fg);
+  --color-primary-soft: var(--app-primary-soft);
+  --color-run: var(--app-run);
+  --color-run-soft: var(--app-run-soft);
+  --color-success: var(--app-success);
+  --color-warning: var(--app-warning);
+  --color-danger: var(--app-danger);
+  --color-danger-soft: var(--app-danger-soft);
+
+  --font-sans: 'Heebo', system-ui, 'Segoe UI', Arial, sans-serif;
+
+  --shadow-card: var(--app-shadow);
+}
+
+/* ---------- Base ---------- */
+@layer base {
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-bg text-fg font-sans antialiased;
+    overscroll-behavior-y: none;
+    min-height: 100dvh;
+  }
+
+  /* Number spinners get in the way of fast entry mid-workout. */
+  input[type='number']::-webkit-outer-spin-button,
+  input[type='number']::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type='number'] {
+    -moz-appearance: textfield;
+  }
+
+  button {
+    touch-action: manipulation;
+  }
+
+  :focus-visible {
+    @apply outline-primary outline-2 outline-offset-2;
+  }
+}
+
+/* ---------- Utilities ---------- */
+@utility safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+@utility safe-top {
+  padding-top: env(safe-area-inset-top);
+}
+
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Charts stay left-to-right even on an RTL page: a time axis reads chronologically. */
+@utility ltr-chart {
+  direction: ltr;
+}
+
+@keyframes fit-slide-up {
+  from {
+    transform: translateY(12px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fit-pulse-ring {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@utility animate-slide-up {
+  animation: fit-slide-up 0.22s ease-out;
+}
+
+@utility animate-pulse-ring {
+  animation: fit-pulse-ring 1s ease-in-out infinite;
+}
