@@ -1,5 +1,7 @@
-import { ChevronLeft, ChevronRight, Dumbbell, Footprints } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Dumbbell } from 'lucide-react';
 import { useTranslation } from '@/i18n';
+import { ACTIVITY_ICON, ACTIVITY_LABEL } from '@/features/running/cardioActivity';
+import { cardioActivityOf } from '@/utils/analytics/running';
 import { countCompletedSets } from '@/utils/analytics/volume';
 import { cn } from '@/utils/cn';
 import { formatRelativeDay, parseCalendarDate } from '@/utils/date';
@@ -19,8 +21,12 @@ export function SessionRow({ entry, onClick, className }: SessionRowProps) {
   const dayLabel = formatRelativeDay(parseCalendarDate(entry.date), language, t);
 
   const isRunning = entry.kind === 'running';
+  const activity = isRunning ? cardioActivityOf(entry.session) : null;
+  const ActivityIcon = activity ? ACTIVITY_ICON[activity] : Dumbbell;
+
+  // A free session has no program name, so the activity itself names the row.
   const name = isRunning
-    ? entry.session.programName || t('running.freeRun')
+    ? entry.session.programName || t(ACTIVITY_LABEL[cardioActivityOf(entry.session)])
     : entry.session.programName;
 
   const details = isRunning
@@ -52,7 +58,7 @@ export function SessionRow({ entry, onClick, className }: SessionRowProps) {
           isRunning ? 'bg-run-soft text-run' : 'bg-primary-soft text-primary',
         )}
       >
-        {isRunning ? <Footprints size={19} /> : <Dumbbell size={19} />}
+        <ActivityIcon size={19} />
       </span>
 
       <span className="min-w-0 flex-1">

@@ -9,6 +9,7 @@ import {
   formatDurationHuman,
   formatPace,
   formatRange,
+  formatSetBreakdown,
   formatSignedNumber,
   formatTarget,
   formatWeight,
@@ -90,6 +91,74 @@ describe('formatRange and formatTarget', () => {
   it('renders a set target', () => {
     expect(formatTarget(3, { min: 15 }, undefined, t)).toBe('3 × 15');
     expect(formatTarget(3, null, 60, t)).toBe('3 × 60 sec');
+  });
+});
+
+describe('formatSetBreakdown', () => {
+  it('collapses identical sets into the compact form', () => {
+    expect(
+      formatSetBreakdown(
+        [
+          { reps: 10, weightKg: 80 },
+          { reps: 10, weightKg: 80 },
+          { reps: 10, weightKg: 80 },
+        ],
+        'kg',
+        t,
+      ),
+    ).toBe('3 × 10 reps @ 80 kg');
+  });
+
+  it('lists the actual reps when a set fell short', () => {
+    expect(
+      formatSetBreakdown(
+        [
+          { reps: 12, weightKg: 80 },
+          { reps: 10, weightKg: 80 },
+          { reps: 8, weightKg: 80 },
+        ],
+        'kg',
+        t,
+      ),
+    ).toBe('12, 10, 8 reps @ 80 kg');
+  });
+
+  it('lists the weights too when they differ between sets', () => {
+    expect(
+      formatSetBreakdown(
+        [
+          { reps: 10, weightKg: 80 },
+          { reps: 10, weightKg: 70 },
+        ],
+        'kg',
+        t,
+      ),
+    ).toBe('2 × 10 reps @ 80, 70 kg');
+  });
+
+  it('omits the load for a bodyweight exercise', () => {
+    expect(formatSetBreakdown([{ reps: 15 }, { reps: 15 }], 'kg', t)).toBe('2 × 15 reps');
+  });
+
+  it('reports a timed exercise in seconds', () => {
+    expect(
+      formatSetBreakdown(
+        [
+          { reps: 0, durationSeconds: 45 },
+          { reps: 0, durationSeconds: 45 },
+        ],
+        'kg',
+        t,
+      ),
+    ).toBe('2 × 45 sec');
+  });
+
+  it('converts the load to the chosen unit', () => {
+    expect(formatSetBreakdown([{ reps: 10, weightKg: 100 }], 'lb', t)).toBe('1 × 10 reps @ 220.5 lb');
+  });
+
+  it('has nothing to say about an empty exercise', () => {
+    expect(formatSetBreakdown([], 'kg', t)).toBe('—');
   });
 });
 

@@ -5,6 +5,8 @@ export type ThemeMode = 'dark' | 'light' | 'system';
 export type WeightUnit = 'kg' | 'lb';
 
 export interface AppSettings {
+  /** Used to greet the user on the home screen; the greeting drops the name when unset. */
+  userName?: string;
   language: Language;
   theme: ThemeMode;
   weightUnit: WeightUnit;

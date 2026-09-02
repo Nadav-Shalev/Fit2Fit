@@ -18,11 +18,13 @@ import { RunningProgramEditorSheet } from '@/features/running/RunningProgramEdit
 import { SessionDetailSheet } from '@/features/history/SessionDetailSheet';
 import { SessionRow } from '@/features/history/SessionRow';
 import { buildHistoryEntries, type HistoryEntry } from '@/features/history/historyEntries';
+import { ACTIVITY_ICON, ACTIVITY_LABEL } from '@/features/running/cardioActivity';
 import { useDataStore } from '@/store/useDataStore';
 import { useToastStore } from '@/store/useToastStore';
 import {
   averagePace,
   calcRunningProgramDuration,
+  cardioActivityOf,
   filterRunsInRange,
   sumRunningDistance,
 } from '@/utils/analytics/running';
@@ -31,7 +33,7 @@ import { formatDistance, formatPaceWithUnit } from '@/utils/format';
 
 type Tab = 'log' | 'programs';
 
-/** Running area: logged runs on one tab, reusable run structures on the other. */
+/** Cardio area: logged runs and walks on one tab, reusable structures on the other. */
 export function RunningPage() {
   const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -176,13 +178,19 @@ export function RunningPage() {
         <div className="flex flex-col gap-3">
           {runningPrograms.map((program) => {
             const minutes = Math.round(calcRunningProgramDuration(program) / 60);
+            const activity = cardioActivityOf(program);
+            const ActivityIcon = ACTIVITY_ICON[activity];
             return (
               <Card key={program.id}>
                 <div className="flex items-start gap-2">
+                  <span className="bg-run-soft text-run flex size-9 shrink-0 items-center justify-center rounded-xl">
+                    <ActivityIcon size={18} />
+                  </span>
+
                   <div className="min-w-0 flex-1">
                     <h3 className="truncate font-bold">{program.name}</h3>
                     <p className="text-muted mt-0.5 text-xs">
-                      {t(`runningType.${program.type}`)}
+                      {t(ACTIVITY_LABEL[activity])} · {t(`runningType.${program.type}`)}
                       {minutes > 0 ? ` · ${t('running.estimated', { minutes })}` : ''}
                     </p>
                   </div>

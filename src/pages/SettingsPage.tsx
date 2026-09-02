@@ -1,5 +1,5 @@
 import { Card, NumberStepper, PageHeader, SegmentedControl, SelectField, Toggle } from '@/components/ui';
-import { FieldShell } from '@/components/ui/Field';
+import { FieldShell, TextField } from '@/components/ui/Field';
 import { useTranslation } from '@/i18n';
 import { LANGUAGES, LANGUAGE_NAMES, type Language } from '@/i18n/types';
 import type { DayOfWeek } from '@/models/common';
@@ -26,6 +26,14 @@ export function SettingsPage() {
           <h2 className="mb-4 font-bold">{t('settings.appearance')}</h2>
 
           <div className="flex flex-col gap-4">
+            <TextField
+              label={t('settings.userName')}
+              hint={t('settings.userNameHint')}
+              placeholder={t('settings.userNamePlaceholder')}
+              value={settings.userName ?? ''}
+              onChange={(event) => void updateSettings({ userName: event.target.value })}
+            />
+
             <FieldShell label={t('settings.theme')}>
               <SegmentedControl
                 ariaLabel={t('settings.theme')}

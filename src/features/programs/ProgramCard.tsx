@@ -1,7 +1,10 @@
+import { useState } from 'react';
 import { Pencil, Play, Trash2 } from 'lucide-react';
 import { Button, Card, IconButton } from '@/components/ui';
 import { useTranslation } from '@/i18n';
-import type { WorkoutProgram } from '@/models/program';
+import type { WorkoutProgram, WorkoutProgramExercise } from '@/models/program';
+import { ExerciseDetailsSheet } from '@/features/exercises/ExerciseDetailsSheet';
+import { detailsFromProgramRow } from '@/features/exercises/exerciseDetails';
 import { useDataStore } from '@/store/useDataStore';
 import { countProgramSets, estimateProgramMinutes } from '@/utils/analytics/session';
 import { formatTarget } from '@/utils/format';
@@ -24,8 +27,18 @@ export function ProgramCard({
 }: ProgramCardProps) {
   const { t } = useTranslation();
   const exercises = useDataStore((state) => state.exercises);
+  const settings = useDataStore((state) => state.settings);
+  const [detailsRow, setDetailsRow] = useState<WorkoutProgramExercise | null>(null);
 
   const ordered = [...program.exercises].sort((a, b) => a.order - b.order);
+
+  const details = detailsRow
+    ? detailsFromProgramRow(
+        detailsRow,
+        exercises.find((exercise) => exercise.id === detailsRow.exerciseId),
+        settings.defaultRestSeconds,
+      )
+    : null;
 
   return (
     <Card>
@@ -58,11 +71,17 @@ export function ProgramCard({
           {ordered.map((row) => {
             const exercise = exercises.find((item) => item.id === row.exerciseId);
             return (
-              <li key={row.id} className="flex items-baseline justify-between gap-3 text-sm">
-                <span className="truncate">{exercise?.name ?? '—'}</span>
-                <span className="text-muted shrink-0 text-xs tabular-nums">
-                  {formatTarget(row.plannedSets, row.plannedReps, row.plannedDurationSeconds, t)}
-                </span>
+              <li key={row.id}>
+                <button
+                  type="button"
+                  onClick={() => setDetailsRow(row)}
+                  className="hover:bg-elevated -mx-1.5 flex w-[calc(100%+0.75rem)] items-baseline justify-between gap-3 rounded-lg px-1.5 py-0.5 text-start text-sm transition-colors"
+                >
+                  <span className="truncate">{exercise?.name ?? '—'}</span>
+                  <span dir="ltr" className="text-muted shrink-0 text-xs tabular-nums">
+                    {formatTarget(row.plannedSets, row.plannedReps, row.plannedDurationSeconds, t)}
+                  </span>
+                </button>
               </li>
             );
           })}
@@ -78,6 +97,13 @@ export function ProgramCard({
       >
         {t('programs.start')}
       </Button>
+
+      <ExerciseDetailsSheet
+        open={details !== null}
+        details={details}
+        weightUnit={settings.weightUnit}
+        onClose={() => setDetailsRow(null)}
+      />
     </Card>
   );
 }

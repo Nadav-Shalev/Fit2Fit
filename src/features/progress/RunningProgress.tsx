@@ -1,10 +1,13 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Footprints } from 'lucide-react';
 import { ChartCard } from '@/components/charts/ChartCard';
 import { TrendChart, type TrendPoint } from '@/components/charts/TrendChart';
-import { EmptyState } from '@/components/ui';
+import { EmptyState, SegmentedControl } from '@/components/ui';
 import { useTranslation } from '@/i18n';
+import type { CardioActivity } from '@/models/running';
+import { ACTIVITY_LABEL, ACTIVITY_OPTIONS } from '@/features/running/cardioActivity';
 import { useDataStore } from '@/store/useDataStore';
+import { filterByActivity } from '@/utils/analytics/running';
 import { bucketRunsByWeek } from '@/utils/analytics/trends';
 import { formatDayMonth, parseCalendarDate } from '@/utils/date';
 import { formatPace } from '@/utils/format';
@@ -12,11 +15,22 @@ import { formatPace } from '@/utils/format';
 const RECENT_RUNS = 12;
 const WEEKS = 8;
 
-/** Distance, duration, pace and weekly volume trends for running. */
+type ActivityFilter = CardioActivity | 'all';
+
+/** Distance, duration, pace and weekly volume trends for cardio. */
 export function RunningProgress() {
   const { t, language } = useTranslation();
-  const runningSessions = useDataStore((state) => state.runningSessions);
+  const allSessions = useDataStore((state) => state.runningSessions);
   const weekStartsOn = useDataStore((state) => state.settings.weekStartsOn);
+
+  // Walking pace sits far from running pace, so mixing them would flatten both
+  // trends into noise. The filter keeps each readable on its own.
+  const [filter, setFilter] = useState<ActivityFilter>('all');
+
+  const runningSessions = useMemo(
+    () => filterByActivity(allSessions, filter === 'all' ? undefined : filter),
+    [allSessions, filter],
+  );
 
   const recent = useMemo(
     () =>
@@ -31,7 +45,23 @@ export function RunningProgress() {
     [runningSessions, weekStartsOn],
   );
 
-  if (runningSessions.length === 0) {
+  const activityFilter = (
+    <SegmentedControl
+      size="sm"
+      ariaLabel={t('running.activity')}
+      value={filter}
+      onChange={setFilter}
+      options={[
+        { value: 'all' as const, label: t('common.all') },
+        ...ACTIVITY_OPTIONS.map((option) => ({
+          value: option,
+          label: t(ACTIVITY_LABEL[option]),
+        })),
+      ]}
+    />
+  );
+
+  if (allSessions.length === 0) {
     return (
       <EmptyState
         icon={<Footprints size={30} />}
@@ -61,8 +91,23 @@ export function RunningProgress() {
 
   const weekLabels = weeks.map((week) => formatDayMonth(week.start, language));
 
+  if (runningSessions.length === 0) {
+    return (
+      <div className="flex flex-col gap-4">
+        {activityFilter}
+        <EmptyState
+          icon={<Footprints size={30} />}
+          title={t('progress.noRunningData')}
+          description={t('progress.noRunningDataHint')}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-4">
+      {activityFilter}
+
       <ChartCard title={t('progress.distanceOverTime')}>
         <TrendChart
           data={distanceSeries}

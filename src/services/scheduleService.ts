@@ -81,6 +81,21 @@ export function resolveWeek(
   return items;
 }
 
+/**
+ * What the weekly plan asks for today, already marked done or outstanding.
+ *
+ * This is what the home screen leads with: "today in the plan: Workout A".
+ */
+export function todaysPlan(
+  input: ResolveInput,
+  referenceDate: Date = new Date(),
+  weekStartsOn: DayOfWeek = 0,
+): ResolvedScheduleItem[] {
+  return resolveWeek(input, referenceDate, weekStartsOn).filter((item) =>
+    isSameDay(item.date, referenceDate),
+  );
+}
+
 export interface NextWorkout {
   kind: 'strength' | 'running';
   programId: ID;

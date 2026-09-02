@@ -8,7 +8,7 @@ import type { TranslationKey } from '@/i18n/locales/en';
 import { useDataStore } from '@/store/useDataStore';
 import { buildExerciseProgress } from '@/utils/analytics/progression';
 import { formatDayMonth, parseCalendarDate } from '@/utils/date';
-import { formatWeight } from '@/utils/format';
+import { formatSetBreakdown, formatWeight } from '@/utils/format';
 
 type Metric = 'reps' | 'volume' | 'bestSet' | 'topWeight' | 'duration';
 
@@ -71,8 +71,11 @@ export function ExerciseProgress() {
     );
   }
 
+  // Every point carries its set breakdown, so selecting one answers both
+  // "when was this" and "what did I actually do".
   const points: TrendPoint[] = series.map((point) => ({
     label: formatDayMonth(parseCalendarDate(point.date), language),
+    detail: formatSetBreakdown(point.setDetails, weightUnit, t),
     value:
       activeMetric === 'reps'
         ? point.totalReps
@@ -144,11 +147,13 @@ export function ExerciseProgress() {
                   key={point.sessionId}
                   className="border-line flex items-baseline justify-between gap-3 border-b pb-2 text-sm last:border-0 last:pb-0"
                 >
-                  <span className="text-muted shrink-0 tabular-nums">
+                  <span dir="ltr" className="text-muted shrink-0 tabular-nums">
                     {formatDayMonth(parseCalendarDate(point.date), language)}
                   </span>
-                  <span className="truncate font-semibold tabular-nums">
-                    {point.repsPerSet.join(', ')}
+                  {/* The same breakdown as the chart tooltip: a reliable
+                      fallback on a touch screen. */}
+                  <span dir="ltr" className="truncate font-semibold tabular-nums">
+                    {formatSetBreakdown(point.setDetails, weightUnit, t)}
                   </span>
                 </li>
               ))}

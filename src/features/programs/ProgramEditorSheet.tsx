@@ -3,6 +3,8 @@ import { ArrowDown, ArrowUp, Pencil, Plus, Trash2 } from 'lucide-react';
 import { Button, EmptyState, IconButton, Sheet, TextField } from '@/components/ui';
 import { useTranslation } from '@/i18n';
 import type { WorkoutProgram, WorkoutProgramExercise } from '@/models/program';
+import { ExerciseDetailsSheet } from '@/features/exercises/ExerciseDetailsSheet';
+import { detailsFromProgramRow } from '@/features/exercises/exerciseDetails';
 import { useDataStore } from '@/store/useDataStore';
 import { useToastStore } from '@/store/useToastStore';
 import { formatTarget } from '@/utils/format';
@@ -31,6 +33,7 @@ export function ProgramEditorSheet({ open, onClose, program }: ProgramEditorShee
   const { t } = useTranslation();
   const exercises = useDataStore((state) => state.exercises);
   const saveProgram = useDataStore((state) => state.saveProgram);
+  const settings = useDataStore((state) => state.settings);
   const pushToast = useToastStore((state) => state.push);
 
   const [name, setName] = useState(program?.name ?? '');
@@ -40,10 +43,19 @@ export function ProgramEditorSheet({ open, onClose, program }: ProgramEditorShee
   );
   const [editingRow, setEditingRow] = useState<WorkoutProgramExercise | null>(null);
   const [exerciseSheetOpen, setExerciseSheetOpen] = useState(false);
+  const [detailsRow, setDetailsRow] = useState<WorkoutProgramExercise | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const nameOf = (row: WorkoutProgramExercise) =>
     exercises.find((exercise) => exercise.id === row.exerciseId)?.name ?? row.exerciseId;
+
+  const details = detailsRow
+    ? detailsFromProgramRow(
+        detailsRow,
+        exercises.find((exercise) => exercise.id === detailsRow.exerciseId),
+        settings.defaultRestSeconds,
+      )
+    : null;
 
   const upsertRow = (row: WorkoutProgramExercise) => {
     setRows((current) => {
@@ -156,17 +168,23 @@ export function ProgramEditorSheet({ open, onClose, program }: ProgramEditorShee
                       />
                     </div>
 
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate font-semibold">{nameOf(row)}</p>
-                      <p className="text-muted text-xs tabular-nums">
+                    {/* The row body opens the details; the controls beside it
+                        keep their own jobs. */}
+                    <button
+                      type="button"
+                      className="min-w-0 flex-1 text-start"
+                      onClick={() => setDetailsRow(row)}
+                    >
+                      <span className="block truncate font-semibold">{nameOf(row)}</span>
+                      <span dir="ltr" className="text-muted block text-xs tabular-nums">
                         {formatTarget(
                           row.plannedSets,
                           row.plannedReps,
                           row.plannedDurationSeconds,
                           t,
                         )}
-                      </p>
-                    </div>
+                      </span>
+                    </button>
 
                     <IconButton
                       size="sm"
@@ -200,6 +218,13 @@ export function ProgramEditorSheet({ open, onClose, program }: ProgramEditorShee
           onSave={upsertRow}
         />
       ) : null}
+
+      <ExerciseDetailsSheet
+        open={details !== null}
+        details={details}
+        weightUnit={settings.weightUnit}
+        onClose={() => setDetailsRow(null)}
+      />
     </>
   );
 }

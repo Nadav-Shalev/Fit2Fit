@@ -101,6 +101,29 @@ export function createWorkoutSession(
   };
 }
 
+/** The first set of an exercise that has not been ticked off. */
+export function nextIncompleteSet(exercise: ExerciseSession): SetSession | null {
+  return exercise.sets.find((set) => !set.completed) ?? null;
+}
+
+/**
+ * The exercise the live workout should offer next.
+ *
+ * Follows the planned order from `afterOrder` onwards and then wraps to the
+ * beginning, so finishing something out of order still lands on a sensible
+ * suggestion rather than the end of the list.
+ */
+export function nextIncompleteExercise(
+  session: WorkoutSession,
+  afterOrder = -1,
+): ExerciseSession | null {
+  const outstanding = [...session.exercises]
+    .filter((exercise) => exercise.status !== 'completed' && exercise.status !== 'skipped')
+    .sort((a, b) => a.order - b.order);
+
+  return outstanding.find((exercise) => exercise.order > afterOrder) ?? outstanding[0] ?? null;
+}
+
 /** Recomputes an exercise's status from its sets; a skipped exercise stays skipped. */
 function deriveStatus(exercise: ExerciseSession): ExerciseSessionStatus {
   if (exercise.status === 'skipped') return 'skipped';
@@ -136,6 +159,30 @@ export function updateSet(
     ...exercise,
     sets: exercise.sets.map((set) => (set.id === setId ? { ...set, ...patch } : set)),
   }));
+}
+
+/** Records how long a set took, as measured by the live workout stopwatch. */
+export function setWorkSeconds(
+  session: WorkoutSession,
+  exerciseSessionId: ID,
+  setId: ID,
+  workSeconds: number,
+): WorkoutSession {
+  return mapExercise(session, exerciseSessionId, (exercise) => ({
+    ...exercise,
+    sets: exercise.sets.map((set) =>
+      set.id === setId ? { ...set, workSeconds: Math.max(0, Math.round(workSeconds)) } : set,
+    ),
+  }));
+}
+
+/** Adds finished rest time to the workout's running total. */
+export function addRestSeconds(session: WorkoutSession, seconds: number): WorkoutSession {
+  if (seconds <= 0) return session;
+  return {
+    ...session,
+    totalRestSeconds: (session.totalRestSeconds ?? 0) + Math.round(seconds),
+  };
 }
 
 /**

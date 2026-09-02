@@ -26,24 +26,34 @@ export interface RunningStep {
 export const RUNNING_PROGRAM_TYPES = ['easy', 'intervals', 'long', 'tempo', 'custom'] as const;
 export type RunningProgramType = (typeof RUNNING_PROGRAM_TYPES)[number];
 
-/** A running template. */
+/**
+ * How a cardio activity is performed. Optional on stored records: everything
+ * saved before walking existed is a run, so a missing value reads as `'run'`.
+ * Always resolve it through `cardioActivityOf` rather than reading it directly.
+ */
+export const CARDIO_ACTIVITIES = ['run', 'walk'] as const;
+export type CardioActivity = (typeof CARDIO_ACTIVITIES)[number];
+
+/** A cardio template — a run or a walk. */
 export interface RunningProgram {
   id: ID;
   name: string;
   type: RunningProgramType;
+  activity?: CardioActivity;
   description?: string;
   steps: RunningStep[];
   createdAt: ISODateTime;
   updatedAt: ISODateTime;
 }
 
-/** A run that was actually performed. */
+/** A cardio activity that was actually performed. */
 export interface RunningSession {
   id: ID;
   programId?: ID;
   /** Snapshot of the program name; empty for a free run. */
   programName: string;
   type: RunningProgramType;
+  activity?: CardioActivity;
   date: CalendarDate;
   startedAt: ISODateTime;
   endedAt?: ISODateTime;

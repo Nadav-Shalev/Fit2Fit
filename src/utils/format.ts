@@ -114,6 +114,50 @@ export function formatTarget(
   return `${sets} × ${formatRange(reps)}`;
 }
 
+/** One performed set, as the progress chart describes it. */
+export interface SetBreakdownEntry {
+  reps: number;
+  weightKg?: number;
+  durationSeconds?: number;
+}
+
+/**
+ * "3 × 10 @ 80 kg", "12, 10, 8 @ 80 kg", "3 × 45 sec".
+ *
+ * Collapses to the compact `sets × reps` form only when every set really was
+ * identical; otherwise the actual values are listed, because "3 × 10" would be
+ * a lie about a set that dropped to 8.
+ */
+export function formatSetBreakdown(
+  sets: SetBreakdownEntry[],
+  weightUnit: WeightUnit,
+  t: Translator,
+): string {
+  if (sets.length === 0) return EMPTY;
+
+  const first = sets[0];
+  if (!first) return EMPTY;
+
+  const timed = first.durationSeconds !== undefined;
+  const values = sets.map((set) => (timed ? (set.durationSeconds ?? 0) : set.reps));
+  const uniform = values.every((value) => value === values[0]);
+
+  const unit = timed ? t('units.sec') : t('units.reps');
+  const amount = uniform ? `${sets.length} × ${values[0]} ${unit}` : `${values.join(', ')} ${unit}`;
+
+  // A mixed-weight exercise (a drop set, say) lists its weights alongside the reps.
+  const weights = sets.map((set) => set.weightKg).filter((value): value is number => value !== undefined && value > 0);
+  if (weights.length === 0) return amount;
+
+  const sameWeight = weights.length === sets.length && weights.every((value) => value === weights[0]);
+  if (sameWeight && weights[0] !== undefined) {
+    return `${amount} @ ${formatWeight(weights[0], weightUnit, t)}`;
+  }
+
+  const unitLabel = weightUnit === 'lb' ? t('units.lb') : t('units.kg');
+  return `${amount} @ ${weights.map((value) => trimNumber(kgToDisplay(value, weightUnit), 1)).join(', ')} ${unitLabel}`;
+}
+
 /** "+12%" / "-3%" / "0%" */
 export function formatSignedPercent(value: number): string {
   const rounded = Math.round(value);

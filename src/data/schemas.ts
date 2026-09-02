@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { MUSCLE_GROUPS } from '@/models/common';
-import { RUNNING_INTERVAL_KINDS, RUNNING_PROGRAM_TYPES } from '@/models/running';
+import { CARDIO_ACTIVITIES, RUNNING_INTERVAL_KINDS, RUNNING_PROGRAM_TYPES } from '@/models/running';
 import type { Fit2FitBackup, Fit2FitDatabase } from '@/models/database';
 import { SCHEMA_VERSION } from '@/models/database';
 import type { AppSettings } from '@/models/settings';
@@ -81,6 +81,7 @@ export const setSessionSchema = z.object({
   actualReps: z.number().min(0).optional(),
   actualWeightKg: z.number().min(0).optional(),
   actualDurationSeconds: z.number().min(0).optional(),
+  workSeconds: z.number().min(0).optional(),
   completed: z.boolean(),
   completedAt: isoDateTimeSchema.optional(),
 });
@@ -119,6 +120,7 @@ export const workoutSessionSchema = z.object({
   startedAt: isoDateTimeSchema,
   endedAt: isoDateTimeSchema.optional(),
   durationSeconds: z.number().min(0),
+  totalRestSeconds: z.number().min(0).optional(),
   status: z.enum(['active', 'completed', 'aborted']),
   exercises: z.array(exerciseSessionSchema),
   rpe: z.number().min(1).max(10).optional(),
@@ -143,6 +145,8 @@ export const runningProgramSchema = z.object({
   id: idSchema,
   name: z.string().min(1),
   type: z.enum(RUNNING_PROGRAM_TYPES),
+  // Absent on everything saved before walking existed; read as a run.
+  activity: z.enum(CARDIO_ACTIVITIES).optional(),
   description: z.string().optional(),
   steps: z.array(runningStepSchema),
   createdAt: isoDateTimeSchema,
@@ -154,6 +158,7 @@ export const runningSessionSchema = z.object({
   programId: idSchema.optional(),
   programName: z.string(),
   type: z.enum(RUNNING_PROGRAM_TYPES),
+  activity: z.enum(CARDIO_ACTIVITIES).optional(),
   date: calendarDateSchema,
   startedAt: isoDateTimeSchema,
   endedAt: isoDateTimeSchema.optional(),
@@ -180,6 +185,7 @@ export const weeklyScheduleSchema = z.object({
  * never block the whole database from loading, so each field falls back.
  */
 export const appSettingsSchema: z.ZodType<AppSettings, z.ZodTypeDef, unknown> = z.object({
+  userName: z.string().optional().catch(undefined),
   language: z.enum(LANGUAGES).catch(DEFAULT_SETTINGS.language),
   theme: z.enum(['dark', 'light', 'system']).catch(DEFAULT_SETTINGS.theme),
   weightUnit: z.enum(['kg', 'lb']).catch(DEFAULT_SETTINGS.weightUnit),

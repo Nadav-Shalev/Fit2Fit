@@ -1,6 +1,26 @@
-import type { RunningProgram, RunningSession } from '@/models/running';
+import type { CardioActivity, RunningProgram, RunningSession } from '@/models/running';
 import type { DateRange } from '@/utils/date';
 import { isCalendarDateWithinRange } from '@/utils/date';
+
+/**
+ * Resolves the activity of a stored record.
+ *
+ * `activity` was added when walking was introduced, so everything saved before
+ * that is missing it — and every one of those records is a run. Reading the
+ * field through here is what keeps old history valid.
+ */
+export function cardioActivityOf(record: Pick<RunningSession, 'activity'>): CardioActivity {
+  return record.activity ?? 'run';
+}
+
+/** Keeps only the sessions of one activity; `undefined` keeps everything. */
+export function filterByActivity(
+  sessions: RunningSession[],
+  activity: CardioActivity | undefined,
+): RunningSession[] {
+  if (!activity) return sessions;
+  return sessions.filter((session) => cardioActivityOf(session) === activity);
+}
 
 /**
  * Pace in seconds per kilometre: pace = duration / distance.

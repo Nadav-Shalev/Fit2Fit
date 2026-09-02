@@ -1,14 +1,24 @@
 import { useMemo, useState } from 'react';
-import { Button, NumberStepper, RpeScale, SelectField, Sheet, TextAreaField, TextField } from '@/components/ui';
+import {
+  Button,
+  NumberStepper,
+  RpeScale,
+  SegmentedControl,
+  SelectField,
+  Sheet,
+  TextAreaField,
+  TextField,
+} from '@/components/ui';
 import { FieldShell } from '@/components/ui/Field';
 import { useTranslation } from '@/i18n';
-import type { RunningProgram, RunningSession } from '@/models/running';
+import type { CardioActivity, RunningProgram, RunningSession } from '@/models/running';
 import { useDataStore } from '@/store/useDataStore';
 import { useToastStore } from '@/store/useToastStore';
-import { calcPaceSecondsPerKm } from '@/utils/analytics/running';
+import { calcPaceSecondsPerKm, cardioActivityOf } from '@/utils/analytics/running';
 import { parseCalendarDate, toCalendarDate } from '@/utils/date';
 import { formatPaceWithUnit } from '@/utils/format';
 import { createId } from '@/utils/id';
+import { ACTIVITY_LABEL, ACTIVITY_OPTIONS } from './cardioActivity';
 
 interface RunLogSheetProps {
   open: boolean;
@@ -22,8 +32,8 @@ interface RunLogSheetProps {
 const FREE_RUN = 'free';
 
 /**
- * Logs a completed run. Pace is derived from duration and distance rather than
- * entered, which is one less thing to get wrong after a run.
+ * Logs a completed run or walk. Pace is derived from duration and distance
+ * rather than entered, which is one less thing to get wrong afterwards.
  */
 export function RunLogSheet({ open, onClose, session, initialProgramId }: RunLogSheetProps) {
   const { t } = useTranslation();
@@ -32,6 +42,11 @@ export function RunLogSheet({ open, onClose, session, initialProgramId }: RunLog
   const pushToast = useToastStore((state) => state.push);
 
   const [programId, setProgramId] = useState(session?.programId ?? initialProgramId ?? FREE_RUN);
+  const [activity, setActivity] = useState<CardioActivity>(() => {
+    if (session) return cardioActivityOf(session);
+    const preselected = runningPrograms.find((program) => program.id === initialProgramId);
+    return preselected ? cardioActivityOf(preselected) : 'run';
+  });
   const [date, setDate] = useState(session?.date ?? toCalendarDate(new Date()));
   const [minutes, setMinutes] = useState<number | undefined>(
     session ? Math.floor(session.durationSeconds / 60) : 30,
@@ -72,6 +87,7 @@ export function RunLogSheet({ open, onClose, session, initialProgramId }: RunLog
       id: session?.id ?? createId(),
       programName: selectedProgram?.name ?? '',
       type: selectedProgram?.type ?? 'easy',
+      activity,
       date,
       startedAt,
       endedAt: new Date(new Date(startedAt).getTime() + durationSeconds * 1000).toISOString(),
@@ -108,10 +124,27 @@ export function RunLogSheet({ open, onClose, session, initialProgramId }: RunLog
       }
     >
       <div className="flex flex-col gap-4">
+        <FieldShell label={t('running.activity')}>
+          <SegmentedControl
+            ariaLabel={t('running.activity')}
+            value={activity}
+            onChange={setActivity}
+            options={ACTIVITY_OPTIONS.map((option) => ({
+              value: option,
+              label: t(ACTIVITY_LABEL[option]),
+            }))}
+          />
+        </FieldShell>
+
         <SelectField
           label={t('schedule.program')}
           value={programId}
-          onChange={(event) => setProgramId(event.target.value)}
+          onChange={(event) => {
+            setProgramId(event.target.value);
+            // Following the program's own activity beats retyping it.
+            const picked = runningPrograms.find((program) => program.id === event.target.value);
+            if (picked) setActivity(cardioActivityOf(picked));
+          }}
         >
           <option value={FREE_RUN}>{t('running.freeRun')}</option>
           {runningPrograms.map((program) => (

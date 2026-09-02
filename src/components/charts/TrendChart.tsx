@@ -14,6 +14,12 @@ import {
 export interface TrendPoint {
   label: string;
   value: number;
+  /**
+   * Extra context for this point, shown only while it is selected — the set
+   * breakdown behind the number, for instance. Keeping it in the tooltip is
+   * what stops the chart itself from becoming crowded.
+   */
+  detail?: string;
 }
 
 export interface TrendChartProps {
@@ -36,14 +42,17 @@ function ChartTooltip({
   formatter,
 }: TooltipProps<number, string> & { formatter: (value: number) => string }) {
   if (!active || !payload || payload.length === 0) return null;
-  const value = payload[0]?.value;
+  const entry = payload[0];
+  const value = entry?.value;
+  const detail = (entry?.payload as TrendPoint | undefined)?.detail;
 
   return (
     <div className="bg-elevated border-line rounded-xl border px-3 py-2 text-xs shadow-card">
-      <p className="text-muted">{label}</p>
+      <p className="text-muted tabular-nums">{label}</p>
       <p className="mt-0.5 font-bold tabular-nums">
         {typeof value === 'number' ? formatter(value) : '—'}
       </p>
+      {detail ? <p className="text-muted mt-0.5 tabular-nums">{detail}</p> : null}
     </div>
   );
 }
