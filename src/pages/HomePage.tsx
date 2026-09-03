@@ -1,21 +1,22 @@
 import { useMemo, useState } from 'react';
 import { History } from 'lucide-react';
-import { EmptyState, PageHeader } from '@/components/ui';
+import { EmptyState } from '@/components/ui';
 import { useTranslation } from '@/i18n';
 import { ActiveWorkoutBanner } from '@/features/dashboard/ActiveWorkoutBanner';
-import { NextWorkoutCard } from '@/features/dashboard/NextWorkoutCard';
+import { GreetingHeader } from '@/features/dashboard/GreetingHeader';
+import { TodayCard } from '@/features/dashboard/TodayCard';
 import { WeekOverview } from '@/features/dashboard/WeekOverview';
 import { SessionDetailSheet } from '@/features/history/SessionDetailSheet';
 import { SessionRow } from '@/features/history/SessionRow';
 import { buildHistoryEntries, type HistoryEntry } from '@/features/history/historyEntries';
-import { findNextWorkout } from '@/services/scheduleService';
+import { findNextWorkout, todaysPlan } from '@/services/scheduleService';
 import { useDataStore } from '@/store/useDataStore';
 import { useWorkoutStore } from '@/store/useWorkoutStore';
 import { weeklySummary } from '@/utils/analytics/summary';
 
 const RECENT_LIMIT = 4;
 
-/** Dashboard: what to do next, how the week is going, and what was done lately. */
+/** The daily starting point: who you are, what today asks for, how the week is going. */
 export function HomePage() {
   const { t } = useTranslation();
   const [selected, setSelected] = useState<HistoryEntry | null>(null);
@@ -28,15 +29,14 @@ export function HomePage() {
   const settings = useDataStore((state) => state.settings);
   const activeSession = useWorkoutStore((state) => state.session);
 
-  const next = useMemo(
-    () =>
-      findNextWorkout(
-        { schedule, programs, runningPrograms, workoutSessions, runningSessions },
-        new Date(),
-        settings.weekStartsOn,
-      ),
-    [schedule, programs, runningPrograms, workoutSessions, runningSessions, settings.weekStartsOn],
-  );
+  const { next, today } = useMemo(() => {
+    const input = { schedule, programs, runningPrograms, workoutSessions, runningSessions };
+    const now = new Date();
+    return {
+      next: findNextWorkout(input, now, settings.weekStartsOn),
+      today: todaysPlan(input, now, settings.weekStartsOn),
+    };
+  }, [schedule, programs, runningPrograms, workoutSessions, runningSessions, settings.weekStartsOn]);
 
   const summary = useMemo(
     () =>
@@ -55,11 +55,12 @@ export function HomePage() {
 
   return (
     <div className="py-2">
-      <PageHeader title={t('app.name')} subtitle={t('app.tagline')} />
+      <GreetingHeader summary={summary} userName={settings.userName} />
 
       {activeSession ? <ActiveWorkoutBanner session={activeSession} /> : null}
 
-      <NextWorkoutCard
+      <TodayCard
+        today={today}
         next={next}
         programs={programs}
         runningPrograms={runningPrograms}

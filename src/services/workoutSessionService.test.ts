@@ -5,10 +5,14 @@ import { DEFAULT_SETTINGS } from '@/models/settings';
 import { makeExercise, makeProgram, makeProgramExercise } from '@/test/factories';
 import {
   abortWorkoutSession,
+  addRestSeconds,
   addSet,
   createWorkoutSession,
   finishWorkoutSession,
+  nextIncompleteExercise,
+  nextIncompleteSet,
   removeLastSet,
+  setWorkSeconds,
   toggleSetCompleted,
   toggleSkipExercise,
   updateSet,
@@ -196,5 +200,91 @@ describe('abortWorkoutSession', () => {
   it('marks the workout as discarded so statistics skip it', () => {
     const session = createWorkoutSession(program, catalog, DEFAULT_SETTINGS, startedAt);
     expect(abortWorkoutSession(session).status).toBe('aborted');
+  });
+});
+
+describe('guided workout navigation', () => {
+  it('offers the first set that is still open', () => {
+    const session = createWorkoutSession(program, catalog, DEFAULT_SETTINGS, startedAt);
+    const exercise = session.exercises[0]!;
+
+    expect(nextIncompleteSet(exercise)?.index).toBe(1);
+
+    const afterFirst = toggleSetCompleted(session, exercise.id, exercise.sets[0]!.id);
+    expect(nextIncompleteSet(afterFirst.exercises[0]!)?.index).toBe(2);
+  });
+
+  it('returns null once every set of an exercise is done', () => {
+    const session = createWorkoutSession(program, catalog, DEFAULT_SETTINGS, startedAt);
+    const exercise = session.exercises[0]!;
+    const done = exercise.sets.reduce(
+      (current, set) => toggleSetCompleted(current, exercise.id, set.id),
+      session,
+    );
+    expect(nextIncompleteSet(done.exercises[0]!)).toBeNull();
+  });
+
+  it('follows the planned order from where the last exercise left off', () => {
+    const session = createWorkoutSession(program, catalog, DEFAULT_SETTINGS, startedAt);
+
+    expect(nextIncompleteExercise(session)?.order).toBe(0);
+    expect(nextIncompleteExercise(session, 0)?.order).toBe(1);
+  });
+
+  it('wraps back to an earlier exercise left unfinished', () => {
+    const session = createWorkoutSession(program, catalog, DEFAULT_SETTINGS, startedAt);
+    const last = session.exercises[session.exercises.length - 1]!;
+
+    // Finishing out of order must not strand the exercises before it.
+    expect(nextIncompleteExercise(session, last.order)?.order).toBe(0);
+  });
+
+  it('skips completed and skipped exercises', () => {
+    const session = createWorkoutSession(program, catalog, DEFAULT_SETTINGS, startedAt);
+    const first = session.exercises[0]!;
+    const skipped = toggleSkipExercise(session, first.id);
+
+    expect(nextIncompleteExercise(skipped)?.id).not.toBe(first.id);
+  });
+
+  it('returns null when nothing is left to do', () => {
+    const session = createWorkoutSession(program, catalog, DEFAULT_SETTINGS, startedAt);
+    const allSkipped = session.exercises.reduce(
+      (current, exercise) => toggleSkipExercise(current, exercise.id),
+      session,
+    );
+    expect(nextIncompleteExercise(allSkipped)).toBeNull();
+  });
+});
+
+describe('live workout timing', () => {
+  it('records how long a set took without touching the recorded result', () => {
+    const session = createWorkoutSession(program, catalog, DEFAULT_SETTINGS, startedAt);
+    const exercise = session.exercises[0]!;
+    const set = exercise.sets[0]!;
+
+    const timed = setWorkSeconds(session, exercise.id, set.id, 42.4);
+    expect(timed.exercises[0]?.sets[0]?.workSeconds).toBe(42);
+    // A non-timed exercise keeps its duration field free for real hold times.
+    expect(timed.exercises[0]?.sets[0]?.actualDurationSeconds).toBeUndefined();
+  });
+
+  it('never records a negative duration', () => {
+    const session = createWorkoutSession(program, catalog, DEFAULT_SETTINGS, startedAt);
+    const exercise = session.exercises[0]!;
+    const timed = setWorkSeconds(session, exercise.id, exercise.sets[0]!.id, -5);
+    expect(timed.exercises[0]?.sets[0]?.workSeconds).toBe(0);
+  });
+
+  it('accumulates rest across the workout', () => {
+    const session = createWorkoutSession(program, catalog, DEFAULT_SETTINGS, startedAt);
+
+    expect(addRestSeconds(session, 90).totalRestSeconds).toBe(90);
+    expect(addRestSeconds(addRestSeconds(session, 90), 60).totalRestSeconds).toBe(150);
+  });
+
+  it('leaves the workout untouched when no time was rested', () => {
+    const session = createWorkoutSession(program, catalog, DEFAULT_SETTINGS, startedAt);
+    expect(addRestSeconds(session, 0)).toBe(session);
   });
 });

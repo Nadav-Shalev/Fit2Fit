@@ -5,6 +5,8 @@ import {
   averagePace,
   calcPaceSecondsPerKm,
   calcSpeedKmh,
+  cardioActivityOf,
+  filterByActivity,
   sumRunningDistance,
   sumRunningDuration,
 } from './running';
@@ -57,5 +59,39 @@ describe('running totals', () => {
 
   it('returns undefined average pace when no run has a distance', () => {
     expect(averagePace([makeRunningSession({ distanceKm: undefined })])).toBeUndefined();
+  });
+});
+
+describe('cardioActivityOf', () => {
+  it('reads a record saved before walking existed as a run', () => {
+    // Every stored run predates the `activity` field, so the default matters.
+    expect(cardioActivityOf(makeRunningSession())).toBe('run');
+  });
+
+  it('honours an explicit activity', () => {
+    expect(cardioActivityOf(makeRunningSession({ activity: 'walk' }))).toBe('walk');
+    expect(cardioActivityOf(makeRunningSession({ activity: 'run' }))).toBe('run');
+  });
+});
+
+describe('filterByActivity', () => {
+  const legacyRun = makeRunningSession({ id: 'legacy' });
+  const walk = makeRunningSession({ id: 'walk', activity: 'walk' });
+  const run = makeRunningSession({ id: 'run', activity: 'run' });
+  const sessions = [legacyRun, walk, run];
+
+  it('keeps everything when no activity is given', () => {
+    expect(filterByActivity(sessions, undefined)).toHaveLength(3);
+  });
+
+  it('counts an undated legacy record as a run', () => {
+    expect(filterByActivity(sessions, 'run').map((session) => session.id)).toEqual([
+      'legacy',
+      'run',
+    ]);
+  });
+
+  it('isolates walks', () => {
+    expect(filterByActivity(sessions, 'walk').map((session) => session.id)).toEqual(['walk']);
   });
 });

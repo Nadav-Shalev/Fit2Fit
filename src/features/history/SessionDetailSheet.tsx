@@ -3,8 +3,10 @@ import { Trash2 } from 'lucide-react';
 import { Badge, Button, ConfirmDialog, Sheet } from '@/components/ui';
 import { useTranslation } from '@/i18n';
 import type { ExerciseSession } from '@/models/session';
+import { ACTIVITY_LABEL } from '@/features/running/cardioActivity';
 import { useDataStore } from '@/store/useDataStore';
 import { useToastStore } from '@/store/useToastStore';
+import { cardioActivityOf } from '@/utils/analytics/running';
 import { calcSessionTotalReps, calcSessionVolume, countCompletedSets, countPlannedSets } from '@/utils/analytics/volume';
 import { formatFullDate, formatTime, parseCalendarDate } from '@/utils/date';
 import {
@@ -126,12 +128,15 @@ export function SessionDetailSheet({ entry, onClose }: SessionDetailSheetProps) 
         ]
       : [
           {
+            label: t('running.activity'),
+            value: t(ACTIVITY_LABEL[cardioActivityOf(entry.session)]),
+          },
+          {
             label: t('running.duration'),
             value: formatDurationHuman(entry.session.durationSeconds, t),
           },
           { label: t('running.distance'), value: formatDistance(entry.session.distanceKm, t) },
           { label: t('running.pace'), value: formatPaceWithUnit(entry.session.paceSecondsPerKm, t) },
-          { label: t('rpe.label'), value: entry.session.rpe ? `${entry.session.rpe}/10` : '—' },
         ];
 
   const volume = entry.kind === 'strength' ? calcSessionVolume(entry.session) : 0;
@@ -142,7 +147,12 @@ export function SessionDetailSheet({ entry, onClose }: SessionDetailSheetProps) 
         open
         onClose={onClose}
         size="lg"
-        title={entry.session.programName || t('running.freeRun')}
+        title={
+          entry.session.programName ||
+          (entry.kind === 'running'
+            ? t(ACTIVITY_LABEL[cardioActivityOf(entry.session)])
+            : t('workout.title'))
+        }
         description={`${formatFullDate(date, language)} · ${
           endTime ? t('history.startEnd', { start: startTime, end: endTime }) : startTime
         }`}

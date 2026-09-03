@@ -13,6 +13,12 @@ export interface SetSession {
   actualReps?: number;
   actualWeightKg?: number;
   actualDurationSeconds?: number;
+  /**
+   * How long the set itself took, measured by the live workout stopwatch.
+   * Deliberately separate from `actualDurationSeconds`, which is the recorded
+   * result of a timed exercise such as a plank.
+   */
+  workSeconds?: number;
   completed: boolean;
   completedAt?: ISODateTime;
 }
@@ -68,6 +74,8 @@ export interface WorkoutSession {
   endedAt?: ISODateTime;
   /** Elapsed seconds; finalized when the workout ends. */
   durationSeconds: number;
+  /** Seconds spent resting between sets, accumulated by the live workout. */
+  totalRestSeconds?: number;
   status: WorkoutSessionStatus;
   exercises: ExerciseSession[];
   /** Overall effort rating, 1-10. Required to finish a workout. */

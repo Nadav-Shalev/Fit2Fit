@@ -1,6 +1,7 @@
 import type { CalendarDate, ID } from '@/models/common';
 import type { ExerciseSession, WorkoutSession } from '@/models/session';
 import type { TranslationKey } from '@/i18n/locales/en';
+import type { SetBreakdownEntry } from '@/utils/format';
 import {
   calcBestSet,
   calcExerciseDuration,
@@ -23,6 +24,8 @@ export interface ExerciseProgressPoint {
   totalDurationSeconds: number;
   /** The sets as performed, for the "15, 15, 13" breakdown. */
   repsPerSet: number[];
+  /** The same sets with their load, for the "3 × 10 @ 80 kg" chart detail. */
+  setDetails: SetBreakdownEntry[];
 }
 
 function hasCompletedSets(exercise: ExerciseSession): boolean {
@@ -51,6 +54,7 @@ export function buildExerciseProgress(
 ): ExerciseProgressPoint[] {
   return collectExerciseSessions(sessions, exerciseId).map(({ session, exercise }) => {
     const best = calcBestSet(exercise);
+    const completed = exercise.sets.filter((set) => set.completed);
     return {
       sessionId: session.id,
       date: session.date,
@@ -60,11 +64,17 @@ export function buildExerciseProgress(
       topWeightKg: calcTopWeight(exercise),
       bestSetReps: best?.reps ?? 0,
       bestSetVolume: Math.round(best?.volume ?? 0),
-      completedSets: exercise.sets.filter((set) => set.completed).length,
+      completedSets: completed.length,
       totalDurationSeconds: calcExerciseDuration(exercise),
-      repsPerSet: exercise.sets
-        .filter((set) => set.completed)
-        .map((set) => set.actualReps ?? set.actualDurationSeconds ?? 0),
+      repsPerSet: completed.map((set) => set.actualReps ?? set.actualDurationSeconds ?? 0),
+      setDetails: completed.map((set) => {
+        const entry: SetBreakdownEntry = { reps: set.actualReps ?? 0 };
+        if (set.actualWeightKg !== undefined) entry.weightKg = set.actualWeightKg;
+        if (exercise.isTimed && set.actualDurationSeconds !== undefined) {
+          entry.durationSeconds = set.actualDurationSeconds;
+        }
+        return entry;
+      }),
     };
   });
 }

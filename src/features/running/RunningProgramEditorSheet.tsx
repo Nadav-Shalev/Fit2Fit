@@ -15,6 +15,7 @@ import { useTranslation } from '@/i18n';
 import {
   RUNNING_INTERVAL_KINDS,
   RUNNING_PROGRAM_TYPES,
+  type CardioActivity,
   type RunningInterval,
   type RunningIntervalKind,
   type RunningProgram,
@@ -23,8 +24,9 @@ import {
 } from '@/models/running';
 import { useDataStore } from '@/store/useDataStore';
 import { useToastStore } from '@/store/useToastStore';
-import { calcRunningProgramDuration } from '@/utils/analytics/running';
+import { calcRunningProgramDuration, cardioActivityOf } from '@/utils/analytics/running';
 import { createId } from '@/utils/id';
+import { ACTIVITY_LABEL, ACTIVITY_OPTIONS } from './cardioActivity';
 
 interface RunningProgramEditorSheetProps {
   open: boolean;
@@ -134,6 +136,9 @@ export function RunningProgramEditorSheet({
   const pushToast = useToastStore((state) => state.push);
 
   const [name, setName] = useState(program?.name ?? '');
+  const [activity, setActivity] = useState<CardioActivity>(
+    program ? cardioActivityOf(program) : 'run',
+  );
   const [type, setType] = useState<RunningProgramType>(program?.type ?? 'intervals');
   const [steps, setSteps] = useState<RunningStep[]>(program?.steps ?? [newStep()]);
   const [error, setError] = useState<string | null>(null);
@@ -153,6 +158,7 @@ export function RunningProgramEditorSheet({
       id: program?.id ?? createId(),
       name: name.trim(),
       type,
+      activity,
       steps: steps.filter((step) => step.intervals.length > 0),
       createdAt: program?.createdAt ?? now,
       updatedAt: now,
@@ -203,6 +209,18 @@ export function RunningProgramEditorSheet({
             setError(null);
           }}
         />
+
+        <FieldShell label={t('running.activity')}>
+          <SegmentedControl
+            ariaLabel={t('running.activity')}
+            value={activity}
+            onChange={setActivity}
+            options={ACTIVITY_OPTIONS.map((option) => ({
+              value: option,
+              label: t(ACTIVITY_LABEL[option]),
+            }))}
+          />
+        </FieldShell>
 
         <SelectField
           label={t('running.type')}

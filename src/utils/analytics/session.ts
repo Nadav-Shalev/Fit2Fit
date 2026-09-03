@@ -51,6 +51,34 @@ export function calcSessionProgress(session: WorkoutSession): SessionProgress {
   };
 }
 
+/**
+ * Elapsed seconds of a pausable stopwatch.
+ *
+ * Everything is derived from absolute timestamps — the origin, the time already
+ * banked in earlier pauses, and the current pause if there is one — so a
+ * throttled interval or a backgrounded tab cannot make it drift.
+ */
+export function elapsedSeconds(
+  startedAt: number | null,
+  pausedMs: number,
+  pausedAt: number | null,
+  now: number,
+): number {
+  if (startedAt === null) return 0;
+  const frozen = pausedAt === null ? 0 : now - pausedAt;
+  return Math.max(0, Math.floor((now - startedAt - pausedMs - frozen) / 1000));
+}
+
+/** Time actually spent working, summed from the sets the live workout timed. */
+export function calcSessionWorkSeconds(session: WorkoutSession): number {
+  return session.exercises.reduce(
+    (total, exercise) =>
+      total +
+      exercise.sets.reduce((sum, set) => sum + (set.completed ? (set.workSeconds ?? 0) : 0), 0),
+    0,
+  );
+}
+
 /** Assumed working time per set when the exercise is not time-based. */
 const ASSUMED_SET_SECONDS = 40;
 

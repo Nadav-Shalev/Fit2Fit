@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { WeeklySchedule } from '@/models/schedule';
 import { makeProgram, makeRunningSession, makeWorkoutSession } from '@/test/factories';
 import { toCalendarDate } from '@/utils/date';
-import { findNextWorkout, resolveWeek } from './scheduleService';
+import { findNextWorkout, resolveWeek, todaysPlan } from './scheduleService';
 
 const programA = makeProgram({ id: 'program-a', name: 'Workout A' });
 const programB = makeProgram({ id: 'program-b', name: 'Workout B' });
@@ -148,5 +148,31 @@ describe('findNextWorkout', () => {
 
   it('returns null when nothing is scheduled', () => {
     expect(findNextWorkout({ ...baseInput, schedule: { entries: [] } }, wednesday, 0)).toBeNull();
+  });
+});
+
+describe('todaysPlan', () => {
+  it('returns only the slots that fall on the reference day', () => {
+    const today = todaysPlan(baseInput, tuesday, 0);
+    expect(today).toHaveLength(1);
+    expect(today[0]?.programName).toBe('Workout B');
+    expect(today[0]?.status).toBe('planned');
+  });
+
+  it('marks the slot done once the workout has been logged', () => {
+    const today = todaysPlan(
+      {
+        ...baseInput,
+        workoutSessions: [makeWorkoutSession({ programId: 'program-b', date: '2026-09-01' })],
+      },
+      tuesday,
+      0,
+    );
+    expect(today[0]?.status).toBe('done');
+  });
+
+  it('is empty on a rest day', () => {
+    // The plan has no Wednesday slot, so the home screen shows a rest day.
+    expect(todaysPlan(baseInput, wednesday, 0)).toHaveLength(0);
   });
 });
